@@ -117,22 +117,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signup = async (email: string, password: string, type: 'seeker' | 'owner', name?: string, phone?: string) => {
     setLoading(true);
     try {
-      // First, sign up the user without additional metadata to avoid trigger issues
+      // Sign up the user with autoConfirm disabled to avoid trigger conflicts
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {},
+          emailRedirectTo: undefined
+        }
       });
 
       if (error) {
-        throw error;
+        throw new Error(error.message || 'Signup failed');
       }
 
-      // If user is created successfully, manually create the profile
+      // Wait a moment for the user to be fully created
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Manually create the profile after successful user creation
       if (data.user && data.user.id) {
         try {
           const { error: profileError } = await supabase
             .from('profiles')
-            .insert({
+            .upsert({
               id: data.user.id,
               email: email,
               user_type: type,
@@ -142,20 +149,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
           if (profileError) {
             console.error('Profile creation error:', profileError);
-            // If profile creation fails, still try to fetch existing profile
+            // If profile creation fails, throw a more specific error
+            throw new Error('Account created but profile setup failed. Please try logging in.');
           }
 
-          // Fetch the user profile
+          // Fetch the newly created profile
           await fetchUserProfile(data.user);
         } catch (profileError) {
           console.error('Error creating profile:', profileError);
-          // Continue anyway - user is created, profile might exist
-          await fetchUserProfile(data.user);
+          throw profileError;
         }
+      } else {
+        throw new Error('User creation failed - no user data returned');
       }
     } catch (error: any) {
       console.error('Signup error:', error);
-      throw new Error(error.message || 'Signup failed');
+      throw error;
     } finally {
       setLoading(false);
     }
