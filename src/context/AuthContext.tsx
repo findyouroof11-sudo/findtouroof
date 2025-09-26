@@ -117,27 +117,54 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signup = async (email: string, password: string, type: 'seeker' | 'owner', name?: string, phone?: string) => {
     setLoading(true);
     try {
-      // Sign up the user with metadata for database trigger
+      // Clean and prepare user data
+      const cleanName = name && name.trim() ? name.trim() : null;
+      const cleanPhone = phone && phone.trim() ? phone.trim() : null;
+      
+      // Sign up the user with properly formatted metadata
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            user_type: type,
-            name: name && name.trim() ? name.trim() : null,
-            phone: phone && phone.trim() ? phone.trim() : null,
-          },
-          emailRedirectTo: undefined
-        }
       });
 
       if (error) {
-        throw new Error(error.message || 'Signup failed');
-      }
+            name: cleanName,
+            phone: cleanPhone,
 
-      // Fetch the user profile (should be created by trigger)
+      // Manually create the profile since trigger might be failing
       if (data.user) {
-        await fetchUserProfile(data.user);
+        try {
+          // Create profile manually
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              email: data.user.email || email,
+              user_type: type,
+              name: name && name.trim() ? name.trim() : null,
+              phone: phone && phone.trim() ? phone.trim() : null,
+            });
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+            // Don't throw here - user account was created successfully
+          }
+
+          // Fetch the created profile
+        // Handle specific Supabase errors
+        if (error.message.includes('Database error saving new user')) {
+          throw new Error('There was an issue creating your account. Please try again or contact support if the problem persists.');
+        } else if (error.message.includes('User already registered')) {
+          throw new Error('An account with this email already exists. Please try logging in instead.');
+        } else {
+          throw new Error(error.message || 'Signup failed');
+        }
+        } catch (profileError) {
+          console.error('Error creating profile:', profileError);
+      // Wait a moment for the trigger to complete, then fetch profile
+          captchaToken: undefined
+        await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
     } catch (error: any) {
       console.error('Signup error:', error);
