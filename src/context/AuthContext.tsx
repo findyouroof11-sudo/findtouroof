@@ -128,8 +128,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       if (error) {
-            name: cleanName,
-            phone: cleanPhone,
+        // Handle specific Supabase errors
+        if (error.message.includes('Database error saving new user')) {
+          throw new Error('There was an issue creating your account. Please try again or contact support if the problem persists.');
+        } else if (error.message.includes('User already registered')) {
+          throw new Error('An account with this email already exists. Please try logging in instead.');
+        } else {
+          throw new Error(error.message || 'Signup failed');
+        }
+      }
 
       // Manually create the profile since trigger might be failing
       if (data.user) {
@@ -151,20 +158,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
 
           // Fetch the created profile
-        // Handle specific Supabase errors
-        if (error.message.includes('Database error saving new user')) {
-          throw new Error('There was an issue creating your account. Please try again or contact support if the problem persists.');
-        } else if (error.message.includes('User already registered')) {
-          throw new Error('An account with this email already exists. Please try logging in instead.');
-        } else {
-          throw new Error(error.message || 'Signup failed');
-        }
+          await fetchUserProfile(data.user);
         } catch (profileError) {
           console.error('Error creating profile:', profileError);
-      // Wait a moment for the trigger to complete, then fetch profile
-          captchaToken: undefined
-        await new Promise(resolve => setTimeout(resolve, 500));
         }
+      // Wait a moment for the trigger to complete, then fetch profile
       }
     } catch (error: any) {
       console.error('Signup error:', error);
