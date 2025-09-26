@@ -117,12 +117,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signup = async (email: string, password: string, type: 'seeker' | 'owner', name?: string, phone?: string) => {
     setLoading(true);
     try {
-      // Sign up the user with autoConfirm disabled to avoid trigger conflicts
+      // Sign up the user with metadata for database trigger
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {},
+          data: {
+            user_type: type,
+            name: name && name.trim() ? name.trim() : null,
+            phone: phone && phone.trim() ? phone.trim() : null,
+          },
           emailRedirectTo: undefined
         }
       });
@@ -131,36 +135,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error(error.message || 'Signup failed');
       }
 
-      // Wait a moment for the user to be fully created
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Manually create the profile after successful user creation
-      if (data.user && data.user.id) {
-        try {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: data.user.id,
-              email: email,
-              user_type: type,
-              name: name && name.trim() ? name.trim() : null,
-              phone: phone && phone.trim() ? phone.trim() : null,
-            });
-
-          if (profileError) {
-            console.error('Profile creation error:', profileError);
-            // If profile creation fails, throw a more specific error
-            throw new Error('Account created but profile setup failed. Please try logging in.');
-          }
-
-          // Fetch the newly created profile
-          await fetchUserProfile(data.user);
-        } catch (profileError) {
-          console.error('Error creating profile:', profileError);
-          throw profileError;
-        }
-      } else {
-        throw new Error('User creation failed - no user data returned');
+      // Fetch the user profile (should be created by trigger)
+      if (data.user) {
+        await fetchUserProfile(data.user);
       }
     } catch (error: any) {
       console.error('Signup error:', error);
