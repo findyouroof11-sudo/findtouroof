@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass-effect {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .bg-gradient-radial {
+    background: radial-gradient(circle at center, var(--tw-gradient-stops));
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(204, 255, 0, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(204, 255, 0, 0.7);
+}
+
+/* Magenta color utilities */
+.text-magenta-400 {
+  color: #e879f9;
+}
+
+.text-magenta-500 {
+  color: #d946ef;
+}
+
+.bg-magenta-400 {
+  background-color: #e879f9;
+}
+
+.bg-magenta-500 {
+  background-color: #d946ef;
+}
+
+.border-magenta-400 {
+  border-color: #e879f9;
+}
+
+.hover\:text-magenta-300:hover {
+  color: #f0abfc;
+}
+
+.hover\:bg-magenta-500\/30:hover {
+  background-color: rgba(217, 70, 239, 0.3);
+}
+
+.hover\:border-magenta-400\/50:hover {
+  border-color: rgba(232, 121, 249, 0.5);
+}
+
+.from-magenta-500\/20 {
+  --tw-gradient-from: rgba(217, 70, 239, 0.2);
+  --tw-gradient-to: rgba(217, 70, 239, 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.to-magenta-400 {
+  --tw-gradient-to: #e879f9;
+}
+
+.shadow-magenta-400\/30 {
+  --tw-shadow-color: rgba(232, 121, 249, 0.3);
+  --tw-shadow: var(--tw-shadow-colored);
+}
