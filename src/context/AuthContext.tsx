@@ -117,51 +117,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signup = async (email: string, password: string, type: 'seeker' | 'owner', name?: string, phone?: string) => {
     setLoading(true);
     try {
-      // Clean and prepare user data
-      const cleanName = name && name.trim() ? name.trim() : null;
-      const cleanPhone = phone && phone.trim() ? phone.trim() : null;
-      
-      // Sign up the user with properly formatted metadata
+      // Sign up the user with metadata for the trigger
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            user_type: type,
+            name: name?.trim() || null,
+            phone: phone?.trim() || null,
+          }
+        }
       });
 
-      if (error) {
-        // Handle specific Supabase errors
-        if (error.message.includes('Database error saving new user')) {
-          throw new Error('There was an issue creating your account. Please try again or contact support if the problem persists.');
-        } else if (error.message.includes('User already registered')) {
-          throw new Error('An account with this email already exists. Please try logging in instead.');
-        } else {
-          throw new Error(error.message || 'Signup failed');
-        }
-      }
-
-      // Manually create the profile since trigger might be failing
-      if (data.user) {
-        try {
-          // Create profile manually
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: data.user.id,
-              email: data.user.email || email,
-              user_type: type,
-              name: name && name.trim() ? name.trim() : null,
-              phone: phone && phone.trim() ? phone.trim() : null,
-            });
-
-          if (profileError) {
-            console.error('Profile creation error:', profileError);
-            // Don't throw here - user account was created successfully
-          }
-
-          // Fetch the created profile
+        throw new Error(error.message || 'Signup failed');
+        // Wait for trigger to complete, then fetch profile
+        setTimeout(async () => {
           await fetchUserProfile(data.user);
-        } catch (profileError) {
-          console.error('Error creating profile:', profileError);
-        }
+        }, 500);
       // Wait a moment for the trigger to complete, then fetch profile
       }
     } catch (error: any) {
